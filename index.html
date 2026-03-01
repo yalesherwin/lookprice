@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CNU STEEL · 钢材价格终端</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --bg-deep: #060a13;
+    --bg-primary: #0b1120;
+    --bg-card: #0f1729;
+    --bg-card-hover: #152035;
+    --bg-elevated: #182845;
+    --accent-gold: #f0b429;
+    --accent-gold-bright: #fbbf24;
+    --accent-gold-dim: rgba(240,180,41,0.12);
+    --accent-cyan: #22d3ee;
+    --accent-cyan-bright: #67e8f9;
+    --accent-cyan-dim: rgba(34,211,238,0.10);
+    --accent-blue: #3b82f6;
+    --accent-purple: #a78bfa;
+    --green: #10b981;
+    --green-bright: #34d399;
+    --green-dim: rgba(16,185,129,0.12);
+    --red: #ef4444;
+    --red-bright: #f87171;
+    --red-dim: rgba(239,68,68,0.12);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #546580;
+    --border: rgba(148,163,184,0.06);
+    --border-accent: rgba(34,211,238,0.18);
+    --glow-cyan: 0 0 20px rgba(34,211,238,0.12), 0 0 40px rgba(34,211,238,0.05);
+    --glow-gold: 0 0 20px rgba(240,180,41,0.12), 0 0 40px rgba(240,180,41,0.05);
+    --glow-red: 0 0 15px rgba(239,68,68,0.15);
+    --glow-green: 0 0 15px rgba(16,185,129,0.15);
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *::-webkit-scrollbar { width: 3px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.2); border-radius: 4px; }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===== Animated Background ===== */
+  .bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .bg-grid {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(34,211,238,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.015) 1px, transparent 1px);
+    background-size: 80px 80px;
+  }
+  .bg-scanline {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+  }
+  .bg-vignette {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(6,10,19,0.6) 100%);
+  }
+
+  .app { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding-bottom: 60px; }
+
+  /* ===== Header ===== */
+  header {
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(24px) saturate(1.2);
+    background: rgba(11,17,32,0.85);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 11px; color: #fff;
+    box-shadow: var(--glow-cyan); position: relative; overflow: hidden;
+  }
+  .logo-mark::after {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+    animation: logoShine 4s ease-in-out infinite;
+  }
+  @keyframes logoShine { 0%,100% { transform: translateX(-100%) rotate(45deg); } 50% { transform: translateX(100%) rotate(45deg); } }
+  .logo-text { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; color: var(--text-primary); }
+  .logo-sub { font-size: 9px; color: var(--text-muted); letter-spacing: 2px; margin-top: -1px; font-weight: 400; }
+
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .live-indicator { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.15); }
+  .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(16,185,129,0); } }
+  .live-text { font-size: 9px; color: var(--green); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .clock { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+
+  .admin-trigger {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    transition: all 0.25s ease;
+  }
+  .admin-trigger:hover { border-color: var(--accent-gold); color: var(--accent-gold); transform: rotate(30deg); }
+  .admin-trigger.authed { border-color: var(--accent-gold); color: var(--accent-gold); background: var(--accent-gold-dim); animation: gearSpin 8s linear infinite; }
+  @keyframes gearSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  /* ===== Ticker Marquee ===== */
+  .ticker-wrap {
+    overflow: hidden; border-bottom: 1px solid var(--border);
+    background: rgba(11,17,32,0.6); backdrop-filter: blur(12px);
+    height: 30px; display: flex; align-items: center; position: relative;
+  }
+  .ticker-wrap::before, .ticker-wrap::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 40px; z-index: 2;
+  }
+  .ticker-wrap::before { left: 0; background: linear-gradient(90deg, var(--bg-deep), transparent); }
+  .ticker-wrap::after { right: 0; background: linear-gradient(-90deg, var(--bg-deep), transparent); }
+  .ticker-track {
+    display: flex; gap: 32px; animation: tickerScroll 40s linear infinite; white-space: nowrap;
+  }
+  @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item { display: flex; align-items: center; gap: 6px; font-size: 10px; flex-shrink: 0; }
+  .ticker-item .t-name { color: var(--text-muted); font-weight: 500; }
+  .ticker-item .t-spec { color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+  .ticker-item .t-price { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 12px; color: var(--accent-gold); }
+  .ticker-item .t-diff { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; }
+  .ticker-item .t-diff.up { color: var(--red); background: var(--red-dim); }
+  .ticker-item .t-diff.down { color: var(--green); background: var(--green-dim); }
+  .ticker-item .t-diff.flat { color: var(--text-muted); }
+  .ticker-sep { color: var(--text-muted); opacity: 0.3; font-size: 8px; flex-shrink: 0; }
+
+  /* ===== Main ===== */
+  main { padding: 12px 14px; }
+
+  /* ===== Tab Navigation ===== */
+  .nav-tabs {
+    display: flex; gap: 3px; margin-bottom: 14px;
+    background: var(--bg-card); border-radius: var(--radius); padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .nav-tab {
+    flex: 1; padding: 9px 6px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text-muted); font-size: 12px;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 500; position: relative; text-align: center; overflow: hidden;
+  }
+  .nav-tab::before {
+    content: ''; position: absolute; inset: 0; border-radius: 10px; opacity: 0;
+    background: linear-gradient(135deg, rgba(34,211,238,0.12), rgba(59,130,246,0.08));
+    transition: opacity 0.3s;
+  }
+  .nav-tab:hover::before { opacity: 0.5; }
+  .nav-tab:hover { color: var(--text-secondary); }
+  .nav-tab.active {
+    color: var(--accent-cyan); font-weight: 700;
+    box-shadow: var(--glow-cyan);
+  }
+  .nav-tab.active::before { opacity: 1; }
+  .nav-tab .tab-source { display: block; font-size: 8px; color: var(--text-muted); margin-top: 1px; font-weight: 400; }
+  .nav-tab.active .tab-source { color: rgba(34,211,238,0.5); }
+  .nav-tab .tab-delta {
+    display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    font-weight: 700; margin-top: 2px; padding: 1px 5px; border-radius: 4px;
+  }
+  .nav-tab .tab-delta.up { color: var(--red); background: var(--red-dim); }
+  .nav-tab .tab-delta.down { color: var(--green); background: var(--green-dim); }
+  .nav-tab .tab-delta.flat { color: var(--text-muted); opacity: 0.5; }
+
+  /* ===== Summary Cards ===== */
+  .summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+  .summary-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 10px; position: relative; overflow: hidden; transition: all 0.3s;
+    cursor: default;
+  }
+  .summary-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .summary-card:hover { border-color: var(--border-accent); transform: translateY(-1px); }
+  .summary-card:hover::before { opacity: 1; }
+  .summary-card .sc-icon { font-size: 14px; margin-bottom: 6px; opacity: 0.6; }
+  .summary-card .sc-label { font-size: 9px; color: var(--text-muted); margin-bottom: 4px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; }
+  .summary-card .sc-value {
+    font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700;
+    color: var(--accent-gold); line-height: 1;
+  }
+  .summary-card .sc-unit { font-size: 9px; color: var(--text-muted); margin-top: 3px; }
+  .summary-card .sc-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sc-badge.up { background: var(--red-dim); color: var(--red); }
+  .sc-badge.down { background: var(--green-dim); color: var(--green); }
+  .sc-badge.flat { background: rgba(148,163,184,0.06); color: var(--text-muted); }
+
+  /* ===== Chart ===== */
+  .chart-section {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 14px; margin-bottom: 14px; position: relative;
+  }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .chart-title { font-size: 11px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .chart-title .dot { width: 6px; height: 6px; border-radius: 2px; }
+  .chart-legend { display: flex; gap: 10px; font-size: 9px; color: var(--text-muted); }
+  .chart-legend span { display: flex; align-items: center; gap: 3px; }
+  .chart-legend .leg-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .chart-container { position: relative; }
+  canvas#sparkChart { width: 100%; height: 140px; display: block; cursor: crosshair; }
+  .chart-tooltip {
+    position: absolute; pointer-events: none; opacity: 0;
+    background: rgba(11,17,32,0.95); border: 1px solid var(--border-accent);
+    border-radius: 8px; padding: 8px 10px; font-size: 10px;
+    backdrop-filter: blur(12px); transition: opacity 0.15s;
+    min-width: 100px; z-index: 10;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .chart-tooltip.visible { opacity: 1; }
+  .ct-spec { color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+  .ct-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; }
+  .ct-label { color: var(--text-muted); }
+  .ct-val { color: var(--accent-gold); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 12px; }
+
+  /* ===== Crosshair ===== */
+  .chart-crosshair-v, .chart-crosshair-h {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.1s;
+  }
+  .chart-crosshair-v { top: 0; bottom: 20px; width: 1px; background: rgba(34,211,238,0.3); border-left: 1px dashed rgba(34,211,238,0.3); }
+  .chart-crosshair-h { left: 0; right: 0; height: 1px; background: rgba(34,211,238,0.2); border-top: 1px dashed rgba(34,211,238,0.2); }
+
+  /* ===== Filter ===== */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .filter-group label { font-size: 9px; color: var(--text-muted); letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+  .filter-control {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text-primary); padding: 10px 12px; font-size: 13px;
+    font-family: 'Noto Sans SC', sans-serif; width: 100%;
+    appearance: none; -webkit-appearance: none; outline: none;
+    transition: all 0.25s ease; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23546580' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 28px;
+  }
+  .filter-control:focus { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+
+  /* ===== Result Card ===== */
+  .result-card {
+    border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px;
+    display: none; position: relative; overflow: hidden;
+    border: 1px solid var(--border-accent);
+    background: linear-gradient(135deg, rgba(34,211,238,0.05), rgba(59,130,246,0.03), rgba(240,180,41,0.02));
+    animation: resultIn 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  .result-card.visible { display: block; }
+  @keyframes resultIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .result-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), var(--accent-blue), var(--accent-gold), transparent);
+  }
+  .result-card::after {
+    content: ''; position: absolute; top: -100px; right: -50px; width: 200px; height: 200px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(34,211,238,0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .result-spec {
+    font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--accent-cyan); margin-bottom: 14px; letter-spacing: 1px;
+    position: relative; z-index: 1;
+  }
+  .result-prices { display: flex; gap: 28px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .rp-item {}
+  .rp-label { font-size: 9px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .rp-value {
+    font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-bright));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1;
+    animation: priceGlow 3s ease-in-out infinite;
+  }
+  @keyframes priceGlow {
+    0%,100% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+  }
+  .rp-base { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+  .rp-diff {
+    display: inline-flex; align-items: center; gap: 3px; margin-top: 4px;
+    font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    animation: diffPulse 2s ease-in-out infinite;
+  }
+  @keyframes diffPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.8; } }
+  .rp-diff.up { background: var(--red-dim); color: var(--red-bright); }
+  .rp-diff.down { background: var(--green-dim); color: var(--green-bright); }
+
+  /* ===== Price Table ===== */
+  .table-section { margin-bottom: 14px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .table-label { font-size: 10px; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .table-count { font-family: 'JetBrains Mono', monospace; font-size: 9px; background: var(--bg-elevated); padding: 2px 8px; border-radius: 10px; color: var(--text-muted); }
+
+  .table-wrap {
+    border-radius: var(--radius-lg); border: 1px solid var(--border);
+    overflow: hidden; max-height: 50vh; overflow-y: auto;
+    background: var(--bg-card);
+  }
+  .ptable { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ptable th {
+    background: var(--bg-elevated); color: var(--text-muted); padding: 9px 12px;
+    text-align: left; font-weight: 600; font-size: 9px; letter-spacing: 1px;
+    text-transform: uppercase; position: sticky; top: 0; z-index: 2;
+    border-bottom: 1px solid var(--border);
+  }
+  .ptable td { padding: 8px 12px; border-bottom: 1px solid var(--border); transition: all 0.2s; }
+  .ptable tbody tr { transition: all 0.15s; }
+  .ptable tbody tr:hover td { background: rgba(34,211,238,0.03); }
+  .ptable tbody tr:last-child td { border-bottom: none; }
+  .ptable .col-spec { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-cyan); font-weight: 600; }
+  .ptable .col-price { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent-gold); }
+  .ptable .col-diff { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; text-align: center; }
+  .ptable .col-diff.up { color: var(--red); }
+  .ptable .col-diff.down { color: var(--green); }
+  .ptable .col-diff.flat { color: var(--text-muted); }
+  .ptable tr.row-hl td { background: rgba(34,211,238,0.08) !important; }
+  .ptable tr.row-hl .col-spec { color: var(--accent-cyan-bright); }
+  .ptable tr.row-hl .col-price { color: var(--accent-gold-bright); }
+  .empty-msg { text-align: center; color: var(--text-muted); font-size: 11px; padding: 20px; }
+
+  /* ===== Compare Section ===== */
+  .compare-section {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 14px; margin-bottom: 14px;
+  }
+  .compare-title { font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .compare-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .compare-cell {
+    background: var(--bg-elevated); border-radius: 8px; padding: 8px;
+    text-align: center; border: 1px solid var(--border); transition: all 0.2s;
+  }
+  .compare-cell:hover { border-color: var(--border-accent); }
+  .cc-name { font-size: 9px; color: var(--text-muted); margin-bottom: 4px; }
+  .cc-price { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent-gold); }
+  .cc-diff { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; margin-top: 2px; }
+  .cc-diff.up { color: var(--red); }
+  .cc-diff.down { color: var(--green); }
+  .cc-diff.flat { color: var(--text-muted); }
+
+  /* ===== Toast ===== */
+  .toast-container { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .toast {
+    padding: 10px 20px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1), toastOut 0.3s ease 2.2s forwards;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4); white-space: nowrap;
+    backdrop-filter: blur(12px);
+  }
+  .toast.success { background: rgba(16,185,129,0.9); color: #fff; }
+  .toast.error { background: rgba(239,68,68,0.9); color: #fff; }
+  .toast.info { background: rgba(59,130,246,0.9); color: #fff; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-12px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-12px) scale(0.9); } }
+
+  /* ===== Footer ===== */
+  .footer-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(11,17,32,0.95); backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border); padding: 7px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 9px; color: var(--text-muted); z-index: 50;
+  }
+  .fb-left { display: flex; align-items: center; gap: 8px; }
+  .fb-tag {
+    padding: 1px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; border: 1px solid var(--border); color: var(--accent-cyan);
+  }
+  .fb-status { display: flex; align-items: center; gap: 4px; }
+  .fb-status .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+
+  /* ===== Admin Modal ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto;
+    animation: modalUp 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  @keyframes modalUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .modal-bar { width: 36px; height: 4px; border-radius: 2px; background: rgba(148,163,184,0.2); margin: 10px auto 0; }
+  .modal-head {
+    padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; padding: 4px; transition: color 0.2s; }
+  .modal-close:hover { color: var(--red); }
+  .modal-body { padding: 18px; }
+
+  /* Admin Login */
+  .admin-login { text-align: center; padding: 30px 0; }
+  .admin-login .lock-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+  .admin-login p { font-size: 11px; color: var(--text-muted); margin-bottom: 18px; }
+  .pwd-input {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text-primary); padding: 14px 18px; font-size: 18px; width: 180px;
+    text-align: center; outline: none; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 6px; transition: all 0.3s;
+  }
+  .pwd-input:focus { border-color: var(--accent-gold); box-shadow: var(--glow-gold); }
+  .pwd-input.error { border-color: var(--red); animation: shake 0.4s ease; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+  .pwd-btn {
+    display: block; margin: 16px auto 0; padding: 11px 40px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent-gold), #f59e0b);
+    color: #1a1a1a; font-weight: 700; font-size: 13px; cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif; transition: all 0.25s; letter-spacing: 1px;
+  }
+  .pwd-btn:hover { transform: translateY(-1px); box-shadow: var(--glow-gold); }
+
+  /* Admin Panel */
+  .admin-panel { display: none; }
+  .admin-panel.visible { display: block; }
+
+  .ap-section { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+  .ap-section:last-child { border-bottom: none; padding-bottom: 0; }
+  .ap-label { font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; }
+  .ap-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+  .ap-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 80px; }
+  .ap-field label { font-size: 9px; color: var(--text-muted); }
+  .ap-field input, .ap-field select {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-primary); padding: 9px 10px; font-size: 13px; outline: none;
+    font-family: 'Noto Sans SC', sans-serif; width: 100%;
+    transition: border-color 0.2s; appearance: none; -webkit-appearance: none;
+  }
+  .ap-field input:focus, .ap-field select:focus { border-color: var(--accent-cyan); box-shadow: 0 0 0 2px rgba(34,211,238,0.08); }
+
+  .ap-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ap-btn {
+    padding: 10px 14px; border-radius: 10px; border: none; font-family: 'Noto Sans SC', sans-serif;
+    font-size: 12px; cursor: pointer; font-weight: 700; transition: all 0.2s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ap-btn:active { transform: scale(0.95); }
+  .ap-btn-up { background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; }
+  .ap-btn-up:hover { box-shadow: var(--glow-red); transform: translateY(-1px); }
+  .ap-btn-down { background: linear-gradient(135deg, var(--green), #059669); color: #fff; }
+  .ap-btn-down:hover { box-shadow: var(--glow-green); transform: translateY(-1px); }
+  .ap-btn-undo { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
+  .ap-btn-reset { background: transparent; color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .ap-btn-export { background: transparent; color: var(--accent-cyan); border: 1px solid rgba(34,211,238,0.2); }
+  .ap-btn-batch { background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: #fff; }
+  .ap-btn-logout { background: transparent; color: var(--text-muted); border: 1px solid var(--border); margin-top: 8px; width: 100%; justify-content: center; }
+
+  /* Batch adjust toggle */
+  .batch-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; color: var(--text-secondary); }
+  .batch-switch { position: relative; width: 36px; height: 20px; cursor: pointer; }
+  .batch-switch input { display: none; }
+  .batch-switch .slider {
+    position: absolute; inset: 0; border-radius: 10px; background: var(--bg-elevated); border: 1px solid var(--border);
+    transition: all 0.25s;
+  }
+  .batch-switch .slider::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--text-muted); transition: all 0.25s;
+  }
+  .batch-switch input:checked + .slider { background: var(--accent-blue); border-color: var(--accent-blue); }
+  .batch-switch input:checked + .slider::after { transform: translateX(16px); background: #fff; }
+
+  /* History */
+  .hist-list { max-height: 200px; overflow-y: auto; }
+  .hist-empty { text-align: center; color: var(--text-muted); font-size: 11px; padding: 16px; opacity: 0.6; }
+  .hist-item {
+    display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+    border-radius: 8px; background: var(--bg-card); margin-bottom: 3px;
+    font-size: 10px; border: 1px solid var(--border); transition: all 0.15s;
+  }
+  .hist-item:hover { border-color: var(--border-accent); }
+  .hist-cat { font-size: 8px; padding: 1px 4px; border-radius: 3px; background: var(--bg-elevated); color: var(--accent-cyan); font-weight: 600; flex-shrink: 0; }
+  .hist-date { color: var(--text-muted); flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 9px; }
+  .hist-delta { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; flex-shrink: 0; min-width: 55px; }
+  .hist-delta.up { color: var(--red); }
+  .hist-delta.down { color: var(--green); }
+  .hist-note { color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+  .hist-del { color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; transition: all 0.15s; font-size: 10px; }
+  .hist-del:hover { color: var(--red); background: var(--red-dim); }
+
+  /* ===== Responsive ===== */
+  @media (min-width: 600px) {
+    .modal { border-radius: var(--radius-xl); margin: auto; max-height: 80vh; }
+    .modal-overlay { align-items: center; }
+    @keyframes modalUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .app { padding: 0 8px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+<div class="bg-grid"></div>
+<div class="bg-scanline"></div>
+<div class="bg-vignette"></div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app">
+  <header>
+    <div class="logo-area">
+      <div class="logo-mark">CNU</div>
+      <div>
+        <div class="logo-text">CNU STEEL</div>
+        <div class="logo-sub">PRICE TERMINAL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        <span class="live-text">LIVE</span>
+      </div>
+      <div class="clock" id="clock"></div>
+      <button class="admin-trigger" id="adminBtn" title="管理员">⚙</button>
+    </div>
+  </header>
+
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <main>
+    <div class="nav-tabs" id="navTabs"></div>
+    <div class="summary-row" id="summaryRow"></div>
+
+    <div class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title"><span class="dot" style="background:var(--accent-cyan)"></span>规格-价格曲线</div>
+        <div class="chart-legend">
+          <span><span class="leg-dot" style="background:var(--accent-cyan)"></span>1000mm</span>
+          <span><span class="leg-dot" style="background:var(--accent-gold)"></span>1200mm</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="sparkChart"></canvas>
+        <div class="chart-crosshair-v" id="crossV"></div>
+        <div class="chart-crosshair-h" id="crossH"></div>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Thickness 厚度</label>
+        <select class="filter-control" id="selThick"></select>
+      </div>
+      <div class="filter-group" style="max-width:120px">
+        <label>Width 宽度</label>
+        <select class="filter-control" id="selWidth">
+          <option value="">全部</option>
+          <option value="1000">1000mm</option>
+          <option value="1200">1200mm</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-spec" id="resultSpec"></div>
+      <div class="result-prices" id="resultPrices"></div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <div class="table-label" id="tableLabel"></div>
+        <div class="table-count" id="tableCount"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="ptable">
+          <thead><tr id="tableHead"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="compare-section">
+      <div class="compare-title">
+        <span class="dot" style="background:var(--accent-purple); width:6px; height:6px; border-radius:2px; display:inline-block"></span>
+        跨品种对比 · 0.30mm
+      </div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </div>
+  </main>
+
+  <div class="footer-bar">
+    <div class="fb-left">
+      <span class="fb-tag">v3.0</span>
+      <span>CNU STEEL TERMINAL</span>
+    </div>
+    <div class="fb-status"><div class="dot"></div> <span id="footerTime"></span></div>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-head">
+      <div class="modal-title">⚙ 管理控制台</div>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-login" id="adminLogin">
+        <div class="lock-icon">🔐</div>
+        <p>输入管理员密码解锁价格调整</p>
+        <input type="password" class="pwd-input" id="pwdInput" maxlength="6" placeholder="••••">
+        <button class="pwd-btn" id="pwdBtn">解 锁</button>
+      </div>
+      <div class="admin-panel" id="adminPanel">
+        <div class="ap-section">
+          <div class="ap-label">价格调整 Price Adjustment</div>
+          <div class="batch-toggle">
+            <label class="batch-switch"><input type="checkbox" id="batchMode"><span class="slider"></span></label>
+            <span>批量调整所有品种</span>
+          </div>
+          <div class="ap-row" id="catRow">
+            <div class="ap-field" style="max-width:130px">
+              <label>品种</label>
+              <select id="adjCategory"></select>
+            </div>
+            <div class="ap-field" style="max-width:120px">
+              <label>日期</label>
+              <input type="date" id="adjDate">
+            </div>
+          </div>
+          <div class="ap-row">
+            <div class="ap-field">
+              <label>金额（元/吨）</label>
+              <input type="number" id="adjAmount" placeholder="输入正数" step="1" min="0">
+            </div>
+            <div class="ap-field">
+              <label>备注</label>
+              <input type="text" id="adjNote" placeholder="可选备注">
+            </div>
+          </div>
+          <div class="ap-actions">
+            <button class="ap-btn ap-btn-up" onclick="applyAdjust(1)">▲ 涨价</button>
+            <button class="ap-btn ap-btn-down" onclick="applyAdjust(-1)">▼ 降价</button>
+            <button class="ap-btn ap-btn-undo" onclick="undoLast()">↩ 撤销</button>
+            <button class="ap-btn ap-btn-reset" onclick="resetAll()">⟳ 清空</button>
+            <button class="ap-btn ap-btn-export" onclick="exportData()">↓ 导出</button>
+          </div>
+        </div>
+        <div class="ap-section">
+          <div class="ap-label">调整记录 History</div>
+          <div class="hist-list" id="historyList"></div>
+        </div>
+        <div class="ap-section">
+          <div class="ap-label">安全设置 Security</div>
+          <div class="ap-row">
+            <div class="ap-field">
+              <label>新密码（4-6位数字）</label>
+              <input type="password" id="newPwd" maxlength="6" placeholder="输入新密码">
+            </div>
+            <button class="ap-btn ap-btn-undo" onclick="changePwd()" style="align-self:flex-end">更新</button>
+          </div>
+        </div>
+        <button class="ap-btn ap-btn-logout" onclick="adminLogout()">退出管理员</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========================================
+   DATA
+======================================== */
+const BASE = [
+  {
+    name: '镀铝锌', source: '山东力强', tag: 'AZ', color: '#22d3ee',
+    rows: [
+      [0.17,4030,4070],[0.18,3990,4030],[0.19,3950,3990],[0.20,3920,3960],
+      [0.21,3890,3930],[0.22,3860,3900],[0.23,3830,3870],[0.24,3800,3840],
+      [0.25,3770,3810],[0.26,3750,3790],[0.27,3740,3780],[0.28,3730,3770],
+      [0.29,3710,3750],[0.30,3710,3750],[0.31,3710,3750],[0.32,3700,3730],
+      [0.33,3690,3710],[0.34,3680,3700],[0.35,3650,3670],[0.36,3640,3650],
+      [0.37,3640,3650],[0.38,3630,3640],[0.39,3630,3640],[0.40,3630,3640],
+      [0.41,3630,3640],[0.42,3630,3640],[0.43,3630,3640],[0.44,3630,3640],
+      [0.45,3630,3640],[0.46,3630,3640],[0.47,3630,3640],[0.48,3630,3640],
+      [0.49,3630,3640],[0.50,3630,3640],[0.55,3630,3640],[0.57,3630,3640],
+      [0.60,3630,3640],[0.65,3630,3640]
+    ]
+  },
+  {
+    name: '彩涂', source: '天津多彩', tag: 'CC', color: '#a78bfa',
+    rows: [
+      [0.12,4990,null],[0.13,4830,null],[0.14,4720,4760],[0.15,4600,4640],
+      [0.16,4510,4550],[0.17,4430,4470],[0.18,4390,4430],[0.19,4320,4360],
+      [0.20,4280,4320],[0.21,4270,4310],[0.22,4220,4260],[0.23,4170,4210],
+      [0.24,4120,4160],[0.25,4080,4120],[0.26,4070,4110],[0.27,4040,4080],
+      [0.28,4010,4050],[0.29,3990,4030],[0.30,3990,4030],[0.31,3990,4030],
+      [0.32,3970,4000],[0.33,3950,3970],[0.34,3940,3960],[0.35,3920,3940],
+      [0.36,3910,3920],[0.37,3900,3910],[0.38,3880,3890],[0.39,3860,3870],
+      [0.40,3860,3870],[0.41,3860,3870],[0.42,3850,3860],[0.43,3850,3860],
+      [0.44,3850,3860],[0.45,3850,3860],[0.46,3850,3860],[0.47,3850,3860],
+      [0.48,3850,3860],[0.49,3850,3860],[0.50,3850,3860],[0.55,3850,3860],
+      [0.57,3850,3860],[0.60,3850,3860],[0.65,3890,3900],[0.68,3890,3900],
+      [0.70,3930,3940],[0.74,3930,3940],[0.78,3930,3940]
+    ]
+  },
+  {
+    name: '镀锌', source: '山东力强', tag: 'GI', color: '#f0b429',
+    rows: [
+      [0.12,4210,null],[0.13,4110,4150],[0.14,4050,4090],[0.15,3980,4020],
+      [0.16,3930,3970],[0.17,3890,3930],[0.18,3860,3900],[0.19,3830,3870],
+      [0.20,3800,3840],[0.21,3780,3820],[0.22,3750,3790],[0.23,3730,3770],
+      [0.24,3700,3740],[0.25,3680,3720],[0.26,3660,3700],[0.27,3650,3690],
+      [0.28,3640,3680],[0.29,3630,3670],[0.30,3630,3670],[0.31,3630,3670],
+      [0.32,3620,3650],[0.33,3620,3640],[0.34,3610,3630],[0.35,3590,3610],
+      [0.36,3580,3590],[0.37,3570,3580],[0.38,3570,3580],[0.39,3560,3570],
+      [0.40,3560,3570],[0.41,3550,3560],[0.42,3550,3560],[0.43,3550,3560],
+      [0.44,3550,3560],[0.45,3550,3560],[0.46,3550,3560],[0.47,3550,3560],
+      [0.48,3550,3560],[0.49,3550,3560],[0.50,3550,3560],[0.55,3550,3560],
+      [0.57,3550,3560],[0.60,3550,3560],[0.65,3550,3560],[0.68,3550,3560],
+      [0.70,3560,3570],[0.74,3560,3570],[0.78,3560,3570]
+    ]
+  }
+];
+
+const BASE_DATE = '2026-02-27';
+const DEFAULT_PWD = '8888';
+let currentIdx = 0;
+let isAdmin = false;
+let chartData = { pts1: [], pts2: [], rows: [] };
+
+/* ========================================
+   STORAGE
+======================================== */
+function getAdj(idx) { try { return JSON.parse(localStorage.getItem('cnu_adj_' + idx) || '[]'); } catch { return []; } }
+function saveAdj(idx, list) { localStorage.setItem('cnu_adj_' + idx, JSON.stringify(list)); }
+function totalDelta(idx) { return getAdj(idx).reduce((s, a) => s + a.delta, 0); }
+function getPwd() { return localStorage.getItem('cnu_admin_pwd') || DEFAULT_PWD; }
+function setPwd(p) { localStorage.setItem('cnu_admin_pwd', p); }
+
+/* ========================================
+   UTILITIES
+======================================== */
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(s) { return s ? s.replace(/-/g, '/') : ''; }
+function fmtNum(n) { return n != null ? n.toLocaleString() : '—'; }
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type; el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ========================================
+   BACKGROUND PARTICLES
+======================================== */
+(function initParticles() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 40; i++) {
+    particles.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.3,
+      a: Math.random() * 0.3 + 0.05,
+      color: Math.random() > 0.5 ? '34,211,238' : '240,180,41'
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p.color},${p.a})`;
+      ctx.fill();
+    });
+
+    // Connect nearby
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(34,211,238,${0.03 * (1 - dist / 150)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ========================================
+   CLOCK
+======================================== */
+function updateClock() {
+  const now = new Date();
+  const d = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const t = now.toLocaleTimeString('zh-CN', { hour12: false });
+  document.getElementById('clock').textContent = t;
+  document.getElementById('footerTime').textContent = d + ' ' + t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ========================================
+   TICKER MARQUEE
+======================================== */
+function renderTicker() {
+  const items = [];
+  BASE.forEach((ds, i) => {
+    const delta = totalDelta(i);
+    const specs = [0.20, 0.30, 0.40, 0.50];
+    specs.forEach(s => {
+      const row = ds.rows.find(r => Math.abs(r[0] - s) < 0.001);
+      if (!row) return;
+      const p = row[1] != null ? row[1] + delta : null;
+      if (p == null) return;
+      const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+      const sign = delta > 0 ? '+' : '';
+      items.push(`<span class="ticker-item">
+        <span class="t-name">${ds.tag}</span>
+        <span class="t-spec">${s.toFixed(2)}</span>
+        <span class="t-price">¥${fmtNum(p)}</span>
+        ${delta !== 0 ? `<span class="t-diff ${cls}">${sign}${delta}</span>` : ''}
+      </span>`);
+    });
+  });
+  const sep = '<span class="ticker-sep">◆</span>';
+  const html = items.join(sep);
+  document.getElementById('tickerTrack').innerHTML = html + sep + html;
+}
+
+/* ========================================
+   TABS
+======================================== */
+function renderTabs() {
+  const el = document.getElementById('navTabs');
+  el.innerHTML = BASE.map((ds, i) => {
+    const d = totalDelta(i);
+    const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+    const sign = d > 0 ? '+' : '';
+    return `<button class="nav-tab ${i === currentIdx ? 'active' : ''}" data-idx="${i}">
+      ${ds.name}<span class="tab-source">${ds.source}</span>
+      <span class="tab-delta ${cls}">${d === 0 ? '—' : sign + d}</span>
+    </button>`;
+  }).join('');
+  el.querySelectorAll('.nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentIdx = parseInt(btn.dataset.idx);
+      document.getElementById('resultCard').classList.remove('visible');
+      renderTabs(); populateThickness(); refresh();
+    });
+  });
+}
+
+/* ========================================
+   SUMMARY CARDS
+======================================== */
+function renderSummary() {
+  const ds = BASE[currentIdx];
+  const delta = totalDelta(currentIdx);
+  const prices1 = ds.rows.map(r => r[1]).filter(Boolean);
+  const minP = Math.min(...prices1) + delta;
+  const maxP = Math.max(...prices1) + delta;
+  const avgP = Math.round(prices1.reduce((a, b) => a + b, 0) / prices1.length) + delta;
+  const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const sign = delta > 0 ? '+' : '';
+  const badge = `<span class="sc-badge ${cls}">${delta === 0 ? '—' : sign + delta}</span>`;
+
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="summary-card">
+      <div class="sc-label">Low 最低</div>
+      <div class="sc-value">${fmtNum(minP)}</div>
+      <div class="sc-unit">CNY/T</div>${badge}
+    </div>
+    <div class="summary-card">
+      <div class="sc-label">Avg 均价</div>
+      <div class="sc-value">${fmtNum(avgP)}</div>
+      <div class="sc-unit">CNY/T</div>${badge}
+    </div>
+    <div class="summary-card">
+      <div class="sc-label">High 最高</div>
+      <div class="sc-value">${fmtNum(maxP)}</div>
+      <div class="sc-unit">CNY/T</div>${badge}
+    </div>`;
+}
+
+/* ========================================
+   CHART with Tooltips
+======================================== */
+function renderChart() {
+  const canvas = document.getElementById('sparkChart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const container = canvas.parentElement;
+  const rect = container.getBoundingClientRect();
+  const W = rect.width; const H = 140;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const ds = BASE[currentIdx]; const delta = totalDelta(currentIdx);
+  const rows = ds.rows;
+  const all = rows.flatMap(r => [r[1], r[2]].filter(Boolean).map(v => v + delta));
+  const minV = Math.min(...all); const maxV = Math.max(...all);
+  const range = maxV - minV || 1;
+  const pad = { t: 14, b: 22, l: 8, r: 8 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(148,163,184,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + plotH * (i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    // Y labels
+    const val = maxV - (range * i / 4);
+    ctx.fillStyle = 'rgba(148,163,184,0.3)';
+    ctx.font = '8px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(val).toString(), W - pad.r, y - 3);
+  }
+
+  function getPoints(valIdx) {
+    const pts = [];
+    rows.forEach((r, i) => {
+      if (r[valIdx] == null) return;
+      const x = pad.l + (i / (rows.length - 1)) * plotW;
+      const y = pad.t + (1 - (r[valIdx] + delta - minV) / range) * plotH;
+      pts.push({ x, y, idx: i });
+    });
+    return pts;
+  }
+
+  function drawSmooth(pts, color, fillAlpha) {
+    if (pts.length < 2) return;
+    // Fill area
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, H - pad.b);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i - 1].x + pts[i].x) / 2;
+      ctx.bezierCurveTo(cx, pts[i - 1].y, cx, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, H - pad.b);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
+    grad.addColorStop(0, color.replace('1)', fillAlpha + ')'));
+    grad.addColorStop(0.7, color.replace('1)', '0.02)'));
+    grad.addColorStop(1, color.replace('1)', '0)'));
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i - 1].x + pts[i].x) / 2;
+      ctx.bezierCurveTo(cx, pts[i - 1].y, cx, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+    // End dot with glow
+    const last = pts[pts.length - 1];
+    ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color.replace('1)', '0.3)'); ctx.fill();
+    ctx.beginPath(); ctx.arc(last.x, last.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+  }
+
+  const pts1 = getPoints(1); const pts2 = getPoints(2);
+  drawSmooth(pts1, 'rgba(34,211,238,1)', 0.12);
+  drawSmooth(pts2, 'rgba(240,180,41,1)', 0.08);
+
+  // X labels
+  ctx.fillStyle = 'rgba(148,163,184,0.35)';
+  ctx.font = '8px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(rows.length / 7));
+  for (let i = 0; i < rows.length; i += step) {
+    const x = pad.l + (i / (rows.length - 1)) * plotW;
+    ctx.fillText(rows[i][0].toFixed(2), x, H - 5);
+  }
+
+  chartData = { pts1, pts2, rows, pad, W, H, plotW, plotH };
+}
+
+// Chart hover
+(function() {
+  const canvas = document.getElementById('sparkChart');
+  const tooltip = document.getElementById('chartTooltip');
+  const crossV = document.getElementById('crossV');
+  const crossH = document.getElementById('crossH');
+
+  canvas.addEventListener('mousemove', handleChartHover);
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); handleChartHover(e.touches[0]); }, { passive: false });
+  canvas.addEventListener('mouseleave', hideTooltip);
+  canvas.addEventListener('touchend', hideTooltip);
+
+  function handleChartHover(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX || e.pageX) - rect.left;
+
+    const { pts1, pts2, rows, pad, W } = chartData;
+    if (!pts1 || !pts1.length) return;
+
+    // Find nearest
+    let best = null, bestDist = Infinity;
+    pts1.forEach(p => {
+      const d = Math.abs(p.x - mx);
+      if (d < bestDist) { bestDist = d; best = p; }
+    });
+    if (!best || bestDist > 30) { hideTooltip(); return; }
+
+    const row = rows[best.idx];
+    const delta = totalDelta(currentIdx);
+    const p1 = row[1] != null ? row[1] + delta : null;
+    const p2 = row[2] != null ? row[2] + delta : null;
+
+    tooltip.innerHTML = `
+      <div class="ct-spec">${row[0].toFixed(2)}mm</div>
+      ${p1 != null ? `<div class="ct-row"><span class="ct-label">1000mm</span><span class="ct-val">¥${fmtNum(p1)}</span></div>` : ''}
+      ${p2 != null ? `<div class="ct-row"><span class="ct-label">1200mm</span><span class="ct-val">¥${fmtNum(p2)}</span></div>` : ''}
+    `;
+
+    const ttW = 120;
+    let tx = best.x + 12;
+    if (tx + ttW > chartData.W - 10) tx = best.x - ttW - 12;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = Math.max(0, best.y - 30) + 'px';
+    tooltip.classList.add('visible');
+
+    crossV.style.left = best.x + 'px'; crossV.style.opacity = '1';
+    crossH.style.top = best.y + 'px'; crossH.style.opacity = '1';
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('visible');
+    crossV.style.opacity = '0'; crossH.style.opacity = '0';
+  }
+})();
+
+/* ========================================
+   THICKNESS & FILTER
+======================================== */
+function populateThickness() {
+  const sel = document.getElementById('selThick');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">全部规格</option>';
+  BASE[currentIdx].rows.forEach(r => {
+    const o = document.createElement('option');
+    o.value = r[0]; o.textContent = r[0].toFixed(2) + ' mm';
+    sel.appendChild(o);
+  });
+  if (prev) sel.value = prev;
+}
+
+/* ========================================
+   RESULT CARD
+======================================== */
+function showResult() {
+  const ds = BASE[currentIdx];
+  const thick = parseFloat(document.getElementById('selThick').value);
+  const width = document.getElementById('selWidth').value;
+  const card = document.getElementById('resultCard');
+  if (!thick) { card.classList.remove('visible'); renderTable(); return; }
+  const row = ds.rows.find(r => Math.abs(r[0] - thick) < 0.001);
+  if (!row) { card.classList.remove('visible'); renderTable(); return; }
+
+  card.classList.add('visible');
+  document.getElementById('resultSpec').textContent = thick.toFixed(2) + 'mm · ' + ds.name + ' · ' + ds.source;
+
+  const delta = totalDelta(currentIdx);
+  function block(label, base) {
+    if (base == null) return '';
+    const cur = base + delta;
+    let diff = '';
+    if (delta !== 0) {
+      const cls = delta > 0 ? 'up' : 'down';
+      diff = `<div class="rp-base">基准 ¥${fmtNum(base)}</div>
+        <div class="rp-diff ${cls}">${delta > 0 ? '▲ +' : '▼ '}${Math.abs(delta)} 元/吨</div>`;
+    }
+    return `<div class="rp-item"><div class="rp-label">${label}</div><div class="rp-value">¥${fmtNum(cur)}</div>${diff}</div>`;
+  }
+
+  const parts = [];
+  if (!width || width === '1000') parts.push(block('1000mm Width', row[1]));
+  if (!width || width === '1200') parts.push(block('1200mm Width', row[2]));
+  document.getElementById('resultPrices').innerHTML = parts.filter(Boolean).join('') || '<div class="empty-msg">暂无报价</div>';
+  renderTable();
+  setTimeout(() => { const hl = document.querySelector('.row-hl'); if (hl) hl.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 100);
+}
+
+/* ========================================
+   TABLE
+======================================== */
+function renderTable() {
+  const ds = BASE[currentIdx]; const delta = totalDelta(currentIdx);
+  const thick = parseFloat(document.getElementById('selThick').value);
+  const width = document.getElementById('selWidth').value;
+  const hasDiff = delta !== 0;
+
+  document.getElementById('tableLabel').innerHTML =
+    `<span>${ds.source}</span> · <span style="color:var(--accent-cyan)">${ds.name}</span>` +
+    (hasDiff ? ` · <span style="color:${delta > 0 ? 'var(--red)' : 'var(--green)'}">${delta > 0 ? '▲+' : '▼'}${delta}</span>` : '');
+  document.getElementById('tableCount').textContent = ds.rows.length + ' specs';
+  document.getElementById('tableHead').innerHTML =
+    '<th>厚度</th><th>1000mm</th><th>1200mm</th>' + (hasDiff ? '<th>涨跌</th>' : '');
+
+  const body = document.getElementById('tableBody');
+  body.innerHTML = '';
+  ds.rows.forEach((r, ri) => {
+    const [t, b1, b2] = r;
+    const p1 = b1 != null ? b1 + delta : null;
+    const p2 = b2 != null ? b2 + delta : null;
+    const isHL = thick && Math.abs(t - thick) < 0.001;
+    const show1 = !width || width === '1000';
+    const show2 = !width || width === '1200';
+    let diffCell = '';
+    if (hasDiff) {
+      const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+      diffCell = `<td class="col-diff ${cls}">${delta > 0 ? '+' : ''}${delta}</td>`;
+    }
+    const tr = document.createElement('tr');
+    if (isHL) tr.classList.add('row-hl');
+    tr.style.animationDelay = (ri * 10) + 'ms';
+    tr.innerHTML = `
+      <td class="col-spec">${t.toFixed(2)}</td>
+      <td class="col-price">${show1 ? fmtNum(p1) : '—'}</td>
+      <td class="col-price">${show2 ? fmtNum(p2) : '—'}</td>
+      ${hasDiff ? diffCell : ''}`;
+    body.appendChild(tr);
+  });
+}
+
+/* ========================================
+   COMPARE
+======================================== */
+function renderCompare() {
+  const spec = 0.30;
+  const grid = document.getElementById('compareGrid');
+  grid.innerHTML = BASE.map((ds, i) => {
+    const delta = totalDelta(i);
+    const row = ds.rows.find(r => Math.abs(r[0] - spec) < 0.001);
+    const p = row && row[1] != null ? row[1] + delta : null;
+    const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    const sign = delta > 0 ? '+' : '';
+    return `<div class="compare-cell">
+      <div class="cc-name">${ds.tag} · ${ds.name}</div>
+      <div class="cc-price">${p != null ? '¥' + fmtNum(p) : '—'}</div>
+      <div class="cc-diff ${cls}">${delta === 0 ? '—' : sign + delta + '元'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ========================================
+   ADMIN: ADJUST
+======================================== */
+function getAdminIdx() { return parseInt(document.getElementById('adjCategory').value) || 0; }
+
+function applyAdjust(sign) {
+  const raw = parseFloat(document.getElementById('adjAmount').value);
+  if (!raw || isNaN(raw) || raw <= 0) { toast('请输入正数金额', 'error'); return; }
+  const batch = document.getElementById('batchMode').checked;
+  const date = document.getElementById('adjDate').value || todayStr();
+  const note = document.getElementById('adjNote').value || '';
+
+  if (batch) {
+    BASE.forEach((_, i) => {
+      const delta = sign * Math.abs(raw);
+      const list = getAdj(i); list.push({ date, delta, note }); saveAdj(i, list);
+    });
+    toast(`全品种 ${sign > 0 ? '涨价' : '降价'} ${Math.abs(raw)}元/吨`, sign > 0 ? 'error' : 'success');
+  } else {
+    const idx = getAdminIdx();
+    const delta = sign * Math.abs(raw);
+    const list = getAdj(idx); list.push({ date, delta, note }); saveAdj(idx, list);
+    toast(`${BASE[idx].name} ${delta > 0 ? '涨价' : '降价'} ${Math.abs(delta)}元/吨`, delta > 0 ? 'error' : 'success');
+  }
+  document.getElementById('adjAmount').value = '';
+  document.getElementById('adjNote').value = '';
+  refresh();
+}
+
+function undoLast() {
+  const batch = document.getElementById('batchMode').checked;
+  if (batch) {
+    let undone = false;
+    BASE.forEach((_, i) => { const list = getAdj(i); if (list.length) { list.pop(); saveAdj(i, list); undone = true; } });
+    if (!undone) { toast('无记录可撤销', 'info'); return; }
+    toast('已撤销全品种最后一条', 'info');
+  } else {
+    const idx = getAdminIdx(); const list = getAdj(idx);
+    if (!list.length) { toast('无记录可撤销', 'info'); return; }
+    const last = list.pop(); saveAdj(idx, list);
+    toast(`已撤销 ${last.delta > 0 ? '+' : ''}${last.delta}元`, 'info');
+  }
+  refresh();
+}
+
+function resetAll() {
+  const batch = document.getElementById('batchMode').checked;
+  if (batch) {
+    if (!confirm('确定清空所有品种的调整记录？')) return;
+    BASE.forEach((_, i) => saveAdj(i, []));
+    toast('已清空全部记录', 'info');
+  } else {
+    const idx = getAdminIdx();
+    if (!getAdj(idx).length) { toast('无记录', 'info'); return; }
+    if (!confirm(`确定清空 ${BASE[idx].name} 的所有记录？`)) return;
+    saveAdj(idx, []);
+    toast('已清空', 'info');
+  }
+  refresh();
+}
+
+function deleteAdj(dsIdx, i) {
+  const list = getAdj(dsIdx); list.splice(i, 1); saveAdj(dsIdx, list);
+  toast('已删除', 'info'); refresh();
+}
+
+function exportData() {
+  let csv = '品种,厚度,1000mm价格,1200mm价格,涨跌\n';
+  BASE.forEach((ds, i) => {
+    const delta = totalDelta(i);
+    ds.rows.forEach(r => {
+      const p1 = r[1] != null ? r[1] + delta : '';
+      const p2 = r[2] != null ? r[2] + delta : '';
+      csv += `${ds.name},${r[0].toFixed(2)},${p1},${p2},${delta}\n`;
+    });
+  });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CNU钢材价格_${todayStr()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('数据已导出', 'success');
+}
+
+/* ========================================
+   ADMIN: HISTORY (ALL CATEGORIES)
+======================================== */
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  const all = [];
+  BASE.forEach((ds, i) => {
+    getAdj(i).forEach((a, j) => all.push({ ...a, cat: ds.tag, catName: ds.name, dsIdx: i, adjIdx: j }));
+  });
+  all.sort((a, b) => b.date.localeCompare(a.date) || b.adjIdx - a.adjIdx);
+
+  if (!all.length) { el.innerHTML = '<div class="hist-empty">暂无调整记录</div>'; return; }
+  el.innerHTML = all.map(a => {
+    const cls = a.delta > 0 ? 'up' : 'down';
+    return `<div class="hist-item">
+      <span class="hist-cat">${a.cat}</span>
+      <span class="hist-date">${fmtDate(a.date)}</span>
+      <span class="hist-delta ${cls}">${a.delta > 0 ? '+' : ''}${a.delta}元</span>
+      <span class="hist-note">${a.note || '—'}</span>
+      <span class="hist-del" onclick="deleteAdj(${a.dsIdx},${a.adjIdx})">✕</span>
+    </div>`;
+  }).join('');
+}
+
+/* ========================================
+   ADMIN: AUTH
+======================================== */
+function adminLogin() {
+  const pwd = document.getElementById('pwdInput').value;
+  if (pwd === getPwd()) {
+    isAdmin = true;
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('adminPanel').classList.add('visible');
+    document.getElementById('adminBtn').classList.add('authed');
+    updateAdminCategory();
+    renderHistory();
+    toast('管理员已解锁', 'success');
+  } else {
+    document.getElementById('pwdInput').classList.add('error');
+    toast('密码错误', 'error');
+    setTimeout(() => document.getElementById('pwdInput').classList.remove('error'), 500);
+  }
+  document.getElementById('pwdInput').value = '';
+}
+
+function adminLogout() {
+  isAdmin = false;
+  document.getElementById('adminLogin').style.display = '';
+  document.getElementById('adminPanel').classList.remove('visible');
+  document.getElementById('adminBtn').classList.remove('authed');
+  closeModal();
+  toast('已退出管理员', 'info');
+}
+
+function changePwd() {
+  const np = document.getElementById('newPwd').value;
+  if (!np || np.length < 4 || !/^\d+$/.test(np)) { toast('密码需4-6位数字', 'error'); return; }
+  setPwd(np); document.getElementById('newPwd').value = '';
+  toast('密码已更新', 'success');
+}
+
+function updateAdminCategory() {
+  document.getElementById('adjCategory').innerHTML = BASE.map((ds, i) =>
+    `<option value="${i}" ${i === currentIdx ? 'selected' : ''}>${ds.name}·${ds.source}</option>`
+  ).join('');
+}
+
+/* ========================================
+   MODAL
+======================================== */
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  if (isAdmin) { updateAdminCategory(); renderHistory(); }
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+document.getElementById('adminBtn').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('pwdBtn').addEventListener('click', adminLogin);
+document.getElementById('pwdInput').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+
+// Batch mode toggle
+document.getElementById('batchMode').addEventListener('change', e => {
+  document.getElementById('catRow').style.opacity = e.target.checked ? '0.3' : '1';
+  document.getElementById('adjCategory').disabled = e.target.checked;
+});
+
+/* ========================================
+   FILTERS
+======================================== */
+document.getElementById('selThick').addEventListener('change', showResult);
+document.getElementById('selWidth').addEventListener('change', () => { showResult(); renderTable(); });
+
+/* ========================================
+   REFRESH
+======================================== */
+function refresh() {
+  renderTabs(); renderTicker(); renderSummary();
+  renderChart(); renderTable(); showResult();
+  renderCompare();
+  if (isAdmin) renderHistory();
+}
+
+/* ========================================
+   INIT
+======================================== */
+document.getElementById('adjDate').value = todayStr();
+populateThickness();
+refresh();
+window.addEventListener('resize', () => { renderChart(); });
+</script>
+</body>
+</html>
