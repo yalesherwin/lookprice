@@ -520,6 +520,13 @@
 
   /* History */
   .hist-list { max-height: 200px; overflow-y: auto; }
+  .bp-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .bp-table th { text-align: center; padding: 4px 6px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .bp-table td { padding: 3px 4px; text-align: center; }
+  .bp-table input { width: 60px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 3px 5px; border-radius: 4px; text-align: center; font-size: 11px; font-family: inherit; }
+  .bp-table input:focus { border-color: var(--accent-cyan); outline: none; }
+  .bp-del { cursor: pointer; color: var(--red); font-size: 13px; opacity: 0.6; }
+  .bp-del:hover { opacity: 1; }
   .hist-empty { text-align: center; color: var(--text-muted); font-size: 11px; padding: 16px; opacity: 0.6; }
   .hist-item {
     display: flex; align-items: center; gap: 6px; padding: 7px 10px;
@@ -728,6 +735,21 @@
           </div>
         </div>
         <div class="ap-section">
+          <div class="ap-label">基础价格编辑 Base Price Editor</div>
+          <div class="ap-row">
+            <div class="ap-field" style="max-width:160px">
+              <label>选择品种</label>
+              <select id="basePriceCategory"></select>
+            </div>
+            <button class="ap-btn ap-btn-undo" onclick="addBaseRow()" style="align-self:flex-end">+ 新增规格</button>
+            <button class="ap-btn" onclick="saveBasePrices()" style="align-self:flex-end;background:var(--green);color:#000">保存基础价</button>
+          </div>
+          <div id="basePriceEditor" style="max-height:300px;overflow-y:auto;margin-top:8px;"></div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+            修改后点「保存基础价」同步到服务器，所有用户刷新后可见
+          </div>
+        </div>
+        <div class="ap-section">
           <div class="ap-label">安全设置 Security</div>
           <div class="ap-row">
             <div class="ap-field">
@@ -747,7 +769,7 @@
 /* ========================================
    DATA
 ======================================== */
-const BASE = [
+const DEFAULT_BASE = [
   {
     name: '镀铝锌', source: '山东瑞通', tag: 'AZ', color: '#22d3ee',
     rows: [
@@ -821,6 +843,7 @@ const BASE = [
     ]
   }
 ];
+let BASE = DEFAULT_BASE.map(d => ({ ...d, rows: d.rows.map(r => [...r]) }));
 
 const BASE_DATE = '2026-03-01';
 const API_BASE = '';   // 同域部署留空；跨域填完整URL
@@ -835,7 +858,7 @@ let chartData = { pts1: [], pts2: [], rows: [] };
 ======================================== */
 const DEFAULT_FOB_MARKUP = 250;
 const DEFAULT_FOB_RATE = 6.80;
-const PRODUCT_COUNT = BASE.length;
+let PRODUCT_COUNT = BASE.length;
 
 // --- localStorage 缓存层 ---
 function getAdj(idx) { try { return JSON.parse(localStorage.getItem('cnu_adj_' + idx) || '[]'); } catch { return []; } }
@@ -863,21 +886,45 @@ async function apiPost(path, body) {
 }
 
 // 从服务器拉取最新配置 -> 写入 localStorage -> 刷新UI
+// 用 KV 数据覆盖 BASE 数组
+function applyBasePrices(bp) {
+  if (!Array.isArray(bp) || bp.length === 0) return;
+  bp.forEach((item, i) => {
+    if (i < BASE.length && Array.isArray(item.rows)) {
+      BASE[i].rows = item.rows;
+      if (item.name) BASE[i].name = item.name;
+      if (item.source) BASE[i].source = item.source;
+    }
+  });
+  PRODUCT_COUNT = BASE.length;
+}
+
 async function syncFromServer() {
   if (!USE_API) return;
   try {
     const resp = await apiGet('/api/config');
     if (!resp.ok) return;
     const d = resp.data;
+    // 先应用基础价格
+    if (d.base_prices) {
+      applyBasePrices(d.base_prices);
+      localStorage.setItem('cnu_base_prices', JSON.stringify(d.base_prices));
+    }
     for (let i = 0; i < PRODUCT_COUNT; i++) {
       localStorage.setItem('cnu_adj_' + i, JSON.stringify(d.adj[i] || []));
     }
     localStorage.setItem('cnu_fob_markup', d.fob_markup);
     localStorage.setItem('cnu_fob_rate', d.fob_rate);
     updateFobDisplay();
+    populateThickness();
     refresh();
   } catch (e) {
     console.warn('Sync from server failed, using local cache:', e);
+    // 离线时尝试用 localStorage 缓存的基础价格
+    try {
+      const cached = JSON.parse(localStorage.getItem('cnu_base_prices'));
+      if (cached) applyBasePrices(cached);
+    } catch {}
   }
 }
 
@@ -890,6 +937,19 @@ async function syncToServer() {
     await apiPost('/api/config', { adj, fob_markup: getFobMarkup(), fob_rate: getFobRate() });
   } catch (e) {
     console.warn('Sync to server failed:', e);
+  }
+}
+
+// 保存基础价格到服务器
+async function syncBasePricesToServer() {
+  if (!USE_API || !adminToken) return;
+  const base_prices = BASE.map(d => ({ name: d.name, source: d.source, rows: d.rows }));
+  try {
+    await apiPost('/api/config', { base_prices });
+    toast('基础价格已保存到服务器', 'success');
+  } catch (e) {
+    console.warn('Sync base prices failed:', e);
+    toast('保存失败', 'error');
   }
 }
 
@@ -1470,7 +1530,7 @@ async function adminLogin() {
       document.getElementById('adminLogin').style.display = 'none';
       document.getElementById('adminPanel').classList.add('visible');
       document.getElementById('adminBtn').classList.add('authed');
-      updateAdminCategory(); renderHistory();
+      updateAdminCategory(); renderHistory(); initBasePriceEditor();
       toast('管理员已解锁(本地模式)', 'success');
     } else {
       document.getElementById('pwdInput').classList.add('error');
@@ -1488,9 +1548,10 @@ async function adminLogin() {
       document.getElementById('adminLogin').style.display = 'none';
       document.getElementById('adminPanel').classList.add('visible');
       document.getElementById('adminBtn').classList.add('authed');
-      updateAdminCategory(); renderHistory();
+      updateAdminCategory(); renderHistory(); initBasePriceEditor();
       toast('管理员已解锁', 'success');
       await syncFromServer();
+      initBasePriceEditor();
     } else {
       document.getElementById('pwdInput').classList.add('error');
       toast(resp.error || '密码错误', 'error');
@@ -1533,6 +1594,65 @@ function updateAdminCategory() {
   document.getElementById('adjCategory').innerHTML = BASE.map((ds, i) =>
     `<option value="${i}" ${i === currentIdx ? 'selected' : ''}>${ds.name}·${ds.source}</option>`
   ).join('');
+}
+
+/* ========================================
+   BASE PRICE EDITOR
+======================================== */
+let bpEditIdx = 0;
+
+function initBasePriceEditor() {
+  const sel = document.getElementById('basePriceCategory');
+  sel.innerHTML = BASE.map((ds, i) => `<option value="${i}">${ds.name}</option>`).join('');
+  sel.value = bpEditIdx;
+  sel.addEventListener('change', () => { bpEditIdx = parseInt(sel.value); renderBasePriceEditor(); });
+  renderBasePriceEditor();
+}
+
+function renderBasePriceEditor() {
+  const ds = BASE[bpEditIdx];
+  const el = document.getElementById('basePriceEditor');
+  let html = `<table class="bp-table"><thead><tr><th>厚度</th><th>1000mm</th><th>1200mm</th><th></th></tr></thead><tbody>`;
+  ds.rows.forEach((r, ri) => {
+    html += `<tr>
+      <td><input type="number" step="0.01" value="${r[0]}" onchange="updateBaseCell(${bpEditIdx},${ri},0,this.value)"></td>
+      <td><input type="number" step="1" value="${r[1] ?? ''}" onchange="updateBaseCell(${bpEditIdx},${ri},1,this.value)" placeholder="—"></td>
+      <td><input type="number" step="1" value="${r[2] ?? ''}" onchange="updateBaseCell(${bpEditIdx},${ri},2,this.value)" placeholder="—"></td>
+      <td><span class="bp-del" onclick="deleteBaseRow(${bpEditIdx},${ri})">✕</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function updateBaseCell(dsIdx, rowIdx, colIdx, val) {
+  if (colIdx === 0) {
+    BASE[dsIdx].rows[rowIdx][0] = parseFloat(val) || 0;
+  } else {
+    BASE[dsIdx].rows[rowIdx][colIdx] = val === '' ? null : parseInt(val);
+  }
+}
+
+function deleteBaseRow(dsIdx, rowIdx) {
+  BASE[dsIdx].rows.splice(rowIdx, 1);
+  renderBasePriceEditor();
+}
+
+function addBaseRow() {
+  const ds = BASE[bpEditIdx];
+  const lastThick = ds.rows.length > 0 ? ds.rows[ds.rows.length - 1][0] + 0.01 : 0.10;
+  ds.rows.push([parseFloat(lastThick.toFixed(2)), 0, 0]);
+  renderBasePriceEditor();
+  // 滚动到底部
+  const editor = document.getElementById('basePriceEditor');
+  editor.scrollTop = editor.scrollHeight;
+}
+
+async function saveBasePrices() {
+  await syncBasePricesToServer();
+  localStorage.setItem('cnu_base_prices', JSON.stringify(BASE.map(d => ({ name: d.name, source: d.source, rows: d.rows }))));
+  populateThickness();
+  refresh();
 }
 
 function saveFobSettings() {

@@ -1,12 +1,16 @@
-// GET /api/config  - 公开，返回所有共享配置
+// GET /api/config  - 公开，返回所有共享配置（含基础价格）
 // POST /api/config - 管理员更新配置（需 Bearer token）
 
 async function getConfig(env) {
   const raw = await env.CNU_PRICE.get('config');
-  if (!raw) {
-    return { adj: [[], [], [], [], []], fob_markup: 250, fob_rate: 6.80, version: Date.now() };
+  const basePricesRaw = await env.CNU_PRICE.get('base_prices');
+  const config = raw
+    ? JSON.parse(raw)
+    : { adj: [[], [], [], [], []], fob_markup: 250, fob_rate: 6.80, version: Date.now() };
+  if (basePricesRaw) {
+    config.base_prices = JSON.parse(basePricesRaw);
   }
-  return JSON.parse(raw);
+  return config;
 }
 
 async function verifyToken(request, env) {
@@ -38,8 +42,18 @@ export async function onRequestPost(context) {
   if (body.fob_markup !== undefined) config.fob_markup = parseFloat(body.fob_markup);
   if (body.fob_rate !== undefined) config.fob_rate = parseFloat(body.fob_rate);
 
+  // 基础价格单独存储（数据量较大，分开存）
+  if (body.base_prices !== undefined) {
+    if (!Array.isArray(body.base_prices)) {
+      return Response.json({ ok: false, error: 'base_prices must be an array' }, { status: 400 });
+    }
+    await context.env.CNU_PRICE.put('base_prices', JSON.stringify(body.base_prices));
+  }
+
   config.version = Date.now();
-  await context.env.CNU_PRICE.put('config', JSON.stringify(config));
+  // 存config时不含base_prices，避免重复存储
+  const { base_prices, ...configWithoutBase } = config;
+  await context.env.CNU_PRICE.put('config', JSON.stringify(configWithoutBase));
 
   return Response.json({ ok: true, data: config });
 }
