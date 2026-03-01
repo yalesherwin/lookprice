@@ -344,6 +344,33 @@
   .ptable tr.row-hl .col-spec { color: var(--accent-cyan-bright); }
   .ptable tr.row-hl .col-price { color: var(--accent-gold-bright); }
   .empty-msg { text-align: center; color: var(--text-muted); font-size: 11px; padding: 20px; }
+  .ptable .col-fob { font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700; color: var(--green); }
+  .ptable tr.row-hl .col-fob { color: var(--green-bright); }
+
+  /* ===== FOB Toggle ===== */
+  .fob-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+  .fob-bar-left { display: flex; align-items: center; gap: 8px; }
+  .fob-bar-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+  .fob-bar-info {
+    font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;
+  }
+  .fob-bar-info span { color: var(--green); font-weight: 600; }
+  .fob-switch { position: relative; width: 36px; height: 20px; cursor: pointer; flex-shrink: 0; }
+  .fob-switch input { display: none; }
+  .fob-switch .slider {
+    position: absolute; inset: 0; border-radius: 10px; background: var(--bg-elevated); border: 1px solid var(--border);
+    transition: all 0.25s;
+  }
+  .fob-switch .slider::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--text-muted); transition: all 0.25s;
+  }
+  .fob-switch input:checked + .slider { background: var(--green); border-color: var(--green); }
+  .fob-switch input:checked + .slider::after { transform: translateX(16px); background: #fff; }
 
   /* ===== Compare Section ===== */
   .compare-section {
@@ -585,6 +612,14 @@
       </div>
     </div>
 
+    <div class="fob-bar">
+      <div class="fob-bar-left">
+        <label class="fob-switch"><input type="checkbox" id="fobToggle"><span class="slider"></span></label>
+        <span class="fob-bar-label">FOB USD</span>
+      </div>
+      <div class="fob-bar-info">+<span id="fobMarkupDisplay">250</span> CNY / rate <span id="fobRateDisplay">6.80</span></div>
+    </div>
+
     <div class="result-card" id="resultCard">
       <div class="result-spec" id="resultSpec"></div>
       <div class="result-prices" id="resultPrices"></div>
@@ -676,6 +711,23 @@
           <div class="hist-list" id="historyList"></div>
         </div>
         <div class="ap-section">
+          <div class="ap-label">FOB 出口价设置 Export Pricing</div>
+          <div class="ap-row">
+            <div class="ap-field">
+              <label>加价金额（元/吨）</label>
+              <input type="number" id="fobMarkup" step="1" min="0" placeholder="250">
+            </div>
+            <div class="ap-field">
+              <label>汇率 (CNY/USD)</label>
+              <input type="number" id="fobRate" step="0.01" min="0.01" placeholder="6.80">
+            </div>
+            <button class="ap-btn ap-btn-undo" onclick="saveFobSettings()" style="align-self:flex-end">保存</button>
+          </div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">
+            公式: FOB = (成本CNY + 加价) / 汇率 &nbsp;|&nbsp; 当前: (<span style="color:var(--accent-gold)">成本</span> + <span id="fobFormulaMarkup" style="color:var(--green)">250</span>) / <span id="fobFormulaRate" style="color:var(--green)">6.80</span>
+          </div>
+        </div>
+        <div class="ap-section">
           <div class="ap-label">安全设置 Security</div>
           <div class="ap-row">
             <div class="ap-field">
@@ -744,23 +796,102 @@ const BASE = [
       [0.57,3550,3560],[0.60,3550,3560],[0.65,3550,3560],[0.68,3550,3560],
       [0.70,3560,3570],[0.74,3560,3570],[0.78,3560,3570]
     ]
+  },
+  {
+    name: '有花镀锌(薄板)', source: '民用', tag: 'GI-T', color: '#10b981',
+    rows: [
+      [0.10,4920,4930],[0.11,4770,4780],[0.12,4680,4690],[0.13,4570,4580],
+      [0.14,4430,4440],[0.15,4360,4370],[0.16,4290,4300],[0.17,4240,4250],
+      [0.18,4190,4200],[0.19,4150,4160],[0.20,4110,4120],[0.21,4080,4090],
+      [0.22,4050,4060],[0.23,4020,4030],[0.24,3990,4000],[0.25,3970,3980],
+      [0.26,3950,3960],[0.27,3930,3940],[0.28,3910,3920],[0.29,3890,3900],
+      [0.30,3870,3880],[0.31,3860,3870],[0.32,3850,3860],[0.33,3840,3850],
+      [0.34,3830,3840],[0.35,3820,3830],[0.36,3820,3830],[0.37,3810,3820],
+      [0.38,3810,3820],[0.39,3800,3810],[0.40,3800,3800],[0.45,3760,3760],
+      [0.50,3740,3740],[0.55,3740,3740],[0.60,3740,3740]
+    ]
+  },
+  {
+    name: '有花镀锌(厚板)', source: '民用', tag: 'GI-K', color: '#f59e0b',
+    rows: [
+      [0.40,3710,3710],[0.45,3660,3660],[0.50,3640,3640],[0.55,3640,3640],
+      [0.60,3640,3640],[0.65,3640,3640],[0.70,3640,3640],[0.75,3640,3640],
+      [0.80,3620,3620],[0.85,3610,3610],[0.90,3590,3590],[0.95,3580,3580],
+      [1.00,3560,3560],[1.20,3560,3560],[1.50,3560,3560],[2.00,3560,3560]
+    ]
   }
 ];
 
-const BASE_DATE = '2026-02-27';
-const DEFAULT_PWD = '8888';
+const BASE_DATE = '2026-03-01';
+const API_BASE = '';   // 同域部署留空；跨域填完整URL
+const USE_API = true;  // 部署到Cloudflare后设为true，本地开发设为false
 let currentIdx = 0;
 let isAdmin = false;
+let adminToken = null;
 let chartData = { pts1: [], pts2: [], rows: [] };
 
 /* ========================================
-   STORAGE
+   STORAGE (hybrid: API + localStorage cache)
 ======================================== */
+const DEFAULT_FOB_MARKUP = 250;
+const DEFAULT_FOB_RATE = 6.80;
+const PRODUCT_COUNT = BASE.length;
+
+// --- localStorage 缓存层 ---
 function getAdj(idx) { try { return JSON.parse(localStorage.getItem('cnu_adj_' + idx) || '[]'); } catch { return []; } }
-function saveAdj(idx, list) { localStorage.setItem('cnu_adj_' + idx, JSON.stringify(list)); }
+function saveAdjLocal(idx, list) { localStorage.setItem('cnu_adj_' + idx, JSON.stringify(list)); }
+function saveAdj(idx, list) { saveAdjLocal(idx, list); syncToServer(); }
 function totalDelta(idx) { return getAdj(idx).reduce((s, a) => s + a.delta, 0); }
-function getPwd() { return localStorage.getItem('cnu_admin_pwd') || DEFAULT_PWD; }
-function setPwd(p) { localStorage.setItem('cnu_admin_pwd', p); }
+
+function getFobMarkup() { const v = parseFloat(localStorage.getItem('cnu_fob_markup')); return isNaN(v) ? DEFAULT_FOB_MARKUP : v; }
+function getFobRate() { const v = parseFloat(localStorage.getItem('cnu_fob_rate')); return isNaN(v) ? DEFAULT_FOB_RATE : v; }
+function setFobMarkup(v) { localStorage.setItem('cnu_fob_markup', v); syncToServer(); }
+function setFobRate(v) { localStorage.setItem('cnu_fob_rate', v); syncToServer(); }
+function calcFob(cnyPrice) { return cnyPrice != null ? ((cnyPrice + getFobMarkup()) / getFobRate()).toFixed(2) : null; }
+let showFob = false;
+
+// --- API 层 ---
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path);
+  return res.json();
+}
+async function apiPost(path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (adminToken) headers['Authorization'] = 'Bearer ' + adminToken;
+  const res = await fetch(API_BASE + path, { method: 'POST', headers, body: JSON.stringify(body) });
+  return res.json();
+}
+
+// 从服务器拉取最新配置 -> 写入 localStorage -> 刷新UI
+async function syncFromServer() {
+  if (!USE_API) return;
+  try {
+    const resp = await apiGet('/api/config');
+    if (!resp.ok) return;
+    const d = resp.data;
+    for (let i = 0; i < PRODUCT_COUNT; i++) {
+      localStorage.setItem('cnu_adj_' + i, JSON.stringify(d.adj[i] || []));
+    }
+    localStorage.setItem('cnu_fob_markup', d.fob_markup);
+    localStorage.setItem('cnu_fob_rate', d.fob_rate);
+    updateFobDisplay();
+    refresh();
+  } catch (e) {
+    console.warn('Sync from server failed, using local cache:', e);
+  }
+}
+
+// 将本地配置推送到服务器（仅管理员）
+async function syncToServer() {
+  if (!USE_API || !adminToken) return;
+  const adj = [];
+  for (let i = 0; i < PRODUCT_COUNT; i++) adj.push(getAdj(i));
+  try {
+    await apiPost('/api/config', { adj, fob_markup: getFobMarkup(), fob_rate: getFobRate() });
+  } catch (e) {
+    console.warn('Sync to server failed:', e);
+  }
+}
 
 /* ========================================
    UTILITIES
@@ -1062,10 +1193,14 @@ function renderChart() {
     const p1 = row[1] != null ? row[1] + delta : null;
     const p2 = row[2] != null ? row[2] + delta : null;
 
+    const fob1 = showFob && p1 != null ? calcFob(p1) : null;
+    const fob2 = showFob && p2 != null ? calcFob(p2) : null;
     tooltip.innerHTML = `
       <div class="ct-spec">${row[0].toFixed(2)}mm</div>
       ${p1 != null ? `<div class="ct-row"><span class="ct-label">1000mm</span><span class="ct-val">¥${fmtNum(p1)}</span></div>` : ''}
+      ${fob1 ? `<div class="ct-row"><span class="ct-label">FOB</span><span class="ct-val" style="color:var(--green)">$${fob1}</span></div>` : ''}
       ${p2 != null ? `<div class="ct-row"><span class="ct-label">1200mm</span><span class="ct-val">¥${fmtNum(p2)}</span></div>` : ''}
+      ${fob2 ? `<div class="ct-row"><span class="ct-label">FOB</span><span class="ct-val" style="color:var(--green)">$${fob2}</span></div>` : ''}
     `;
 
     const ttW = 120;
@@ -1125,7 +1260,12 @@ function showResult() {
       diff = `<div class="rp-base">基准 ¥${fmtNum(base)}</div>
         <div class="rp-diff ${cls}">${delta > 0 ? '▲ +' : '▼ '}${Math.abs(delta)} 元/吨</div>`;
     }
-    return `<div class="rp-item"><div class="rp-label">${label}</div><div class="rp-value">¥${fmtNum(cur)}</div>${diff}</div>`;
+    let fobHtml = '';
+    if (showFob) {
+      const fob = calcFob(cur);
+      fobHtml = `<div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);font-weight:700;">FOB $${fob}</div>`;
+    }
+    return `<div class="rp-item"><div class="rp-label">${label}</div><div class="rp-value">¥${fmtNum(cur)}</div>${diff}${fobHtml}</div>`;
   }
 
   const parts = [];
@@ -1147,10 +1287,16 @@ function renderTable() {
 
   document.getElementById('tableLabel').innerHTML =
     `<span>${ds.source}</span> · <span style="color:var(--accent-cyan)">${ds.name}</span>` +
-    (hasDiff ? ` · <span style="color:${delta > 0 ? 'var(--red)' : 'var(--green)'}">${delta > 0 ? '▲+' : '▼'}${delta}</span>` : '');
+    (hasDiff ? ` · <span style="color:${delta > 0 ? 'var(--red)' : 'var(--green)'}">${delta > 0 ? '▲+' : '▼'}${delta}</span>` : '') +
+    (showFob ? ' · <span style="color:var(--green)">FOB USD</span>' : '');
   document.getElementById('tableCount').textContent = ds.rows.length + ' specs';
-  document.getElementById('tableHead').innerHTML =
-    '<th>厚度</th><th>1000mm</th><th>1200mm</th>' + (hasDiff ? '<th>涨跌</th>' : '');
+
+  let headHtml = '<th>厚度</th><th>1000mm</th>';
+  if (showFob) headHtml += '<th>FOB$</th>';
+  headHtml += '<th>1200mm</th>';
+  if (showFob) headHtml += '<th>FOB$</th>';
+  if (hasDiff) headHtml += '<th>涨跌</th>';
+  document.getElementById('tableHead').innerHTML = headHtml;
 
   const body = document.getElementById('tableBody');
   body.innerHTML = '';
@@ -1166,14 +1312,18 @@ function renderTable() {
       const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
       diffCell = `<td class="col-diff ${cls}">${delta > 0 ? '+' : ''}${delta}</td>`;
     }
+    const fob1 = showFob ? calcFob(p1) : null;
+    const fob2 = showFob ? calcFob(p2) : null;
     const tr = document.createElement('tr');
     if (isHL) tr.classList.add('row-hl');
     tr.style.animationDelay = (ri * 10) + 'ms';
-    tr.innerHTML = `
-      <td class="col-spec">${t.toFixed(2)}</td>
-      <td class="col-price">${show1 ? fmtNum(p1) : '—'}</td>
-      <td class="col-price">${show2 ? fmtNum(p2) : '—'}</td>
-      ${hasDiff ? diffCell : ''}`;
+    let html = `<td class="col-spec">${t.toFixed(2)}</td>`;
+    html += `<td class="col-price">${show1 ? fmtNum(p1) : '—'}</td>`;
+    if (showFob) html += `<td class="col-fob">${show1 && fob1 ? '$' + fob1 : '—'}</td>`;
+    html += `<td class="col-price">${show2 ? fmtNum(p2) : '—'}</td>`;
+    if (showFob) html += `<td class="col-fob">${show2 && fob2 ? '$' + fob2 : '—'}</td>`;
+    if (hasDiff) html += diffCell;
+    tr.innerHTML = html;
     body.appendChild(tr);
   });
 }
@@ -1265,13 +1415,15 @@ function deleteAdj(dsIdx, i) {
 }
 
 function exportData() {
-  let csv = '品种,厚度,1000mm价格,1200mm价格,涨跌\n';
+  let csv = '品种,厚度,1000mm价格,1000mm FOB$,1200mm价格,1200mm FOB$,涨跌\n';
   BASE.forEach((ds, i) => {
     const delta = totalDelta(i);
     ds.rows.forEach(r => {
       const p1 = r[1] != null ? r[1] + delta : '';
       const p2 = r[2] != null ? r[2] + delta : '';
-      csv += `${ds.name},${r[0].toFixed(2)},${p1},${p2},${delta}\n`;
+      const f1 = p1 !== '' ? calcFob(p1) : '';
+      const f2 = p2 !== '' ? calcFob(p2) : '';
+      csv += `${ds.name},${r[0].toFixed(2)},${p1},${f1},${p2},${f2},${delta}\n`;
     });
   });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -1309,26 +1461,50 @@ function renderHistory() {
 /* ========================================
    ADMIN: AUTH
 ======================================== */
-function adminLogin() {
+async function adminLogin() {
   const pwd = document.getElementById('pwdInput').value;
-  if (pwd === getPwd()) {
-    isAdmin = true;
-    document.getElementById('adminLogin').style.display = 'none';
-    document.getElementById('adminPanel').classList.add('visible');
-    document.getElementById('adminBtn').classList.add('authed');
-    updateAdminCategory();
-    renderHistory();
-    toast('管理员已解锁', 'success');
-  } else {
-    document.getElementById('pwdInput').classList.add('error');
-    toast('密码错误', 'error');
-    setTimeout(() => document.getElementById('pwdInput').classList.remove('error'), 500);
+  if (!USE_API) {
+    // 未配置API时使用本地默认密码 8888
+    if (pwd === '8888') {
+      isAdmin = true; adminToken = 'local';
+      document.getElementById('adminLogin').style.display = 'none';
+      document.getElementById('adminPanel').classList.add('visible');
+      document.getElementById('adminBtn').classList.add('authed');
+      updateAdminCategory(); renderHistory();
+      toast('管理员已解锁(本地模式)', 'success');
+    } else {
+      document.getElementById('pwdInput').classList.add('error');
+      toast('密码错误', 'error');
+      setTimeout(() => document.getElementById('pwdInput').classList.remove('error'), 500);
+    }
+    document.getElementById('pwdInput').value = '';
+    return;
+  }
+  try {
+    const resp = await apiPost('/api/auth', { password: pwd });
+    if (resp.ok) {
+      adminToken = resp.token;
+      isAdmin = true;
+      document.getElementById('adminLogin').style.display = 'none';
+      document.getElementById('adminPanel').classList.add('visible');
+      document.getElementById('adminBtn').classList.add('authed');
+      updateAdminCategory(); renderHistory();
+      toast('管理员已解锁', 'success');
+      await syncFromServer();
+    } else {
+      document.getElementById('pwdInput').classList.add('error');
+      toast(resp.error || '密码错误', 'error');
+      setTimeout(() => document.getElementById('pwdInput').classList.remove('error'), 500);
+    }
+  } catch (e) {
+    toast('网络错误，请检查连接', 'error');
   }
   document.getElementById('pwdInput').value = '';
 }
 
 function adminLogout() {
   isAdmin = false;
+  adminToken = null;
   document.getElementById('adminLogin').style.display = '';
   document.getElementById('adminPanel').classList.remove('visible');
   document.getElementById('adminBtn').classList.remove('authed');
@@ -1336,17 +1512,51 @@ function adminLogout() {
   toast('已退出管理员', 'info');
 }
 
-function changePwd() {
+async function changePwd() {
   const np = document.getElementById('newPwd').value;
   if (!np || np.length < 4 || !/^\d+$/.test(np)) { toast('密码需4-6位数字', 'error'); return; }
-  setPwd(np); document.getElementById('newPwd').value = '';
-  toast('密码已更新', 'success');
+  if (!USE_API) { toast('本地模式不支持修改密码', 'info'); return; }
+  try {
+    const resp = await apiPost('/api/password', { password: np });
+    if (resp.ok) {
+      document.getElementById('newPwd').value = '';
+      toast('密码已更新', 'success');
+    } else {
+      toast(resp.error || '更新失败', 'error');
+    }
+  } catch (e) {
+    toast('网络错误', 'error');
+  }
 }
 
 function updateAdminCategory() {
   document.getElementById('adjCategory').innerHTML = BASE.map((ds, i) =>
     `<option value="${i}" ${i === currentIdx ? 'selected' : ''}>${ds.name}·${ds.source}</option>`
   ).join('');
+}
+
+function saveFobSettings() {
+  const markup = parseFloat(document.getElementById('fobMarkup').value);
+  const rate = parseFloat(document.getElementById('fobRate').value);
+  if (isNaN(markup) || markup < 0) { toast('请输入有效的加价金额', 'error'); return; }
+  if (isNaN(rate) || rate <= 0) { toast('请输入有效的汇率', 'error'); return; }
+  setFobMarkup(markup); setFobRate(rate);
+  updateFobDisplay();
+  refresh();
+  toast(`FOB设置已保存: +${markup}元 / 汇率${rate.toFixed(2)}`, 'success');
+}
+
+function updateFobDisplay() {
+  const markup = getFobMarkup();
+  const rate = getFobRate();
+  document.getElementById('fobMarkupDisplay').textContent = markup;
+  document.getElementById('fobRateDisplay').textContent = rate.toFixed(2);
+  const fmEl = document.getElementById('fobFormulaMarkup');
+  const frEl = document.getElementById('fobFormulaRate');
+  if (fmEl) fmEl.textContent = markup;
+  if (frEl) frEl.textContent = rate.toFixed(2);
+  document.getElementById('fobMarkup').placeholder = markup;
+  document.getElementById('fobRate').placeholder = rate.toFixed(2);
 }
 
 /* ========================================
@@ -1375,6 +1585,10 @@ document.getElementById('batchMode').addEventListener('change', e => {
 ======================================== */
 document.getElementById('selThick').addEventListener('change', showResult);
 document.getElementById('selWidth').addEventListener('change', () => { showResult(); renderTable(); });
+document.getElementById('fobToggle').addEventListener('change', e => {
+  showFob = e.target.checked;
+  refresh();
+});
 
 /* ========================================
    REFRESH
@@ -1390,8 +1604,10 @@ function refresh() {
    INIT
 ======================================== */
 document.getElementById('adjDate').value = todayStr();
+updateFobDisplay();
 populateThickness();
 refresh();
+syncFromServer(); // 异步拉取服务器最新数据
 window.addEventListener('resize', () => { renderChart(); });
 </script>
 </body>
